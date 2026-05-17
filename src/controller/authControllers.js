@@ -49,6 +49,55 @@ const login = async (req, res) => {
   }
 };
 
+const signup = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Validar que los campos requeridos estén presentes
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nombre, email y contraseña son requeridos'
+      });
+    }
+
+    // Hacer llamada a Xano para signup
+    const xanoResponse = await xanoService.signup(name, email, password);
+
+    if (!xanoResponse.success) {
+      return res.status(xanoResponse.status).json({
+        success: false,
+        error: xanoResponse.error,
+        message: 'Error al crear la cuenta'
+      });
+    }
+
+    // Guardar token en memoria si se proporcionó
+    const token = xanoResponse.data.authToken || xanoResponse.data.token;
+    if (token) {
+      storeToken(token, {
+        email: email,
+        name: name,
+        ...xanoResponse.data
+      });
+    }
+
+    // Retornar la respuesta de Xano
+    return res.status(201).json({
+      success: true,
+      data: xanoResponse.data,
+      message: 'Cuenta creada exitosamente'
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
 const logout = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -81,5 +130,6 @@ const logout = async (req, res) => {
 
 module.exports = {
   login,
+  signup,
   logout
 };

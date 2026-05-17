@@ -2,7 +2,46 @@
 
 ## Endpoints de Autenticación
 
-### 1. Login
+### 1. Signup (Registrarse)
+```http
+POST /api/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "password": "tu_contraseña"
+}
+```
+
+**Respuesta exitosa (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "authToken": "token_aqui",
+    "user": {
+      "id": 1,
+      "name": "Juan Pérez",
+      "email": "juan@example.com"
+    }
+  },
+  "message": "Cuenta creada exitosamente"
+}
+```
+
+**Errores (400, 409):**
+```json
+{
+  "success": false,
+  "error": "El email ya está registrado",
+  "message": "Error al crear la cuenta"
+}
+```
+
+---
+
+### 2. Login
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -30,7 +69,7 @@ Content-Type: application/json
 
 ---
 
-### 2. Logout (Requiere autenticación)
+### 3. Logout (Requiere autenticación)
 ```http
 POST /api/auth/logout
 Authorization: Bearer {authToken}
@@ -121,7 +160,24 @@ GET /api/users/1
 ## Cómo usar en el frontend
 
 ```javascript
-// 1. Login
+// 1. Signup (Registrarse)
+const signupResponse = await fetch('http://localhost:3000/api/auth/signup', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Juan Pérez',
+    email: 'juan@example.com',
+    password: 'tu_contraseña'
+  })
+});
+
+const signupData = await signupResponse.json();
+if (signupData.success) {
+  const token = signupData.data.authToken;
+  localStorage.setItem('token', token);
+}
+
+// 2. Login
 const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -131,10 +187,14 @@ const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
   })
 });
 
-const { data } = await loginResponse.json();
-const token = data.authToken;
+const loginData = await loginResponse.json();
+if (loginData.success) {
+  const token = loginData.data.authToken;
+  localStorage.setItem('token', token);
+}
 
-// 2. Usar token en peticiones protegidas
+// 3. Usar token en peticiones protegidas
+const token = localStorage.getItem('token');
 const createUserResponse = await fetch('http://localhost:3000/api/users', {
   method: 'POST',
   headers: {
@@ -147,9 +207,10 @@ const createUserResponse = await fetch('http://localhost:3000/api/users', {
   })
 });
 
-// 3. Logout
+// 4. Logout
 await fetch('http://localhost:3000/api/auth/logout', {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${token}` }
 });
+localStorage.removeItem('token');
 ```
