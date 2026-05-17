@@ -82,6 +82,17 @@ const signup = async (req, res) => {
       });
     }
 
+    // Enviar email de bienvenida automáticamente
+    const userId = xanoResponse.data.id || xanoResponse.data.user?.id;
+    if (userId) {
+      try {
+        await xanoService.sendWelcomeEmail(userId);
+      } catch (emailError) {
+        console.error('Error al enviar email de bienvenida:', emailError);
+        // No detener el flujo si falla el email
+      }
+    }
+
     // Retornar la respuesta de Xano
     return res.status(201).json({
       success: true,

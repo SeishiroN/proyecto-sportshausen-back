@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const emailRoutes = require('./routes/emailRoutes');
 const logger = require('./middlewares/logger');
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(logger);
 // Rutas
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/emails', emailRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {

@@ -135,7 +135,34 @@ GET /api/users/1
 
 ---
 
-## Errores de Autenticación
+## Endpoints de Emails
+
+### 1. Enviar Email de Bienvenida (Requiere autenticación)
+```http
+POST /api/emails/welcome
+Authorization: Bearer {authToken}
+Content-Type: application/json
+
+{
+  "user_id": 1
+}
+```
+
+**Respuesta exitosa (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "email_sent": true,
+    "timestamp": "2025-05-17T10:30:00Z"
+  },
+  "message": "Email de bienvenida enviado exitosamente"
+}
+```
+
+**Nota:** El email de bienvenida se envía **automáticamente** al crear una nueva cuenta en el signup. Este endpoint es útil si necesitas reenviar el email manualmente.
+
+---
 
 **Sin token (401):**
 ```json

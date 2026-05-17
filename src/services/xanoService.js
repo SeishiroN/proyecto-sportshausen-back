@@ -99,9 +99,31 @@ const signup = async (name, email, password) => {
   }
 };
 
+/**
+ * Enviar email de bienvenida
+ */
+const sendWelcomeEmail = async (userId) => {
+  try {
+    const response = await xanoAPI.post('/message/send_welcome_email', {
+      user_id: userId
+    });
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data || error.message,
+      status: error.response?.status || 500
+    };
+  }
+};
+
 module.exports = {
   login,
   validateToken,
   logout,
-  signup
+  signup,
+  sendWelcomeEmail
 };
