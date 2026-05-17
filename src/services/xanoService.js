@@ -79,12 +79,13 @@ const logout = async (token) => {
 /**
  * Signup con Xano
  */
-const signup = async (name, email, password) => {
+const signup = async (name, email, password, role = 'luchador') => {
   try {
     const response = await xanoAPI.post('/auth/signup', {
-      name,
+      full_name: name,
       email,
-      password
+      password,
+      role
     });
     return {
       success: true,

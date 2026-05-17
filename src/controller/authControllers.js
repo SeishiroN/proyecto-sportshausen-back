@@ -51,7 +51,7 @@ const login = async (req, res) => {
 
 const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role = 'luchador' } = req.body;
 
     // Validar que los campos requeridos estén presentes
     if (!name || !email || !password) {
@@ -61,8 +61,17 @@ const signup = async (req, res) => {
       });
     }
 
+    // Validar rol
+    const validRoles = ['luchador', 'booker', 'agrupación'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rol inválido. Debe ser: luchador, booker o agrupación'
+      });
+    }
+
     // Hacer llamada a Xano para signup
-    const xanoResponse = await xanoService.signup(name, email, password);
+    const xanoResponse = await xanoService.signup(name, email, password, role);
 
     if (!xanoResponse.success) {
       return res.status(xanoResponse.status).json({
@@ -78,6 +87,7 @@ const signup = async (req, res) => {
       storeToken(token, {
         email: email,
         name: name,
+        role: role,
         ...xanoResponse.data
       });
     }
