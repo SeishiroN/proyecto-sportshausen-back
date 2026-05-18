@@ -1,0 +1,23 @@
+{
+  "booker_test_2@example.com": {
+    "role": "booker",
+    "email": "booker_test_2@example.com",
+    "createdAt": "2026-05-17T23:50:08.834Z",
+    "nombre_artistico": "heyman",
+    "user_id": 3
+  },
+  "group_test_2@example.com": {
+    "role": "agrupacion",
+    "email": "group_test_2@example.com",
+    "createdAt": "2026-05-17T23:50:57.236Z",
+    "nombre_artistico": "raw",
+    "user_id": 4
+  },
+  "smdown@xdd.com": {
+    "role": "agrupacion",
+    "email": "smdown@xdd.com",
+    "createdAt": "2026-05-17T23:58:19.892Z",
+    "nombre_artistico": "smdown",
+    "user_id": 5
+  }
+}
