@@ -13,15 +13,37 @@ const xanoAPI = axios.create({
  */
 const login = async (email, password) => {
   try {
+    console.log('🔐 LOGIN ATTEMPT:');
+    console.log('  📧 Email:', email);
+    console.log('  🔑 Password length:', password.length);
+    console.log('  🌐 Base URL:', process.env.XANO_API_URL);
+    
     const response = await xanoAPI.post('/auth/login', {
       email,
       password
     });
+    
+    console.log('✅ LOGIN SUCCESS from Xano:', {
+      hasAuthToken: !!response.data.authToken,
+      hasToken: !!response.data.token,
+      hasUserId: !!response.data.user_id,
+      status: response.status
+    });
+    
     return {
       success: true,
       data: response.data
     };
   } catch (error) {
+    console.error('❌ LOGIN FAILED:');
+    console.error('  Status:', error.response?.status);
+    console.error('  Headers sent:', error.config?.headers);
+    console.error('  URL:', error.config?.url);
+    console.error('  Base URL:', error.config?.baseURL);
+    console.error('  Full URL:', error.config?.baseURL + error.config?.url);
+    console.error('  Response data:', error.response?.data);
+    console.error('  Error message:', error.message);
+    
     return {
       success: false,
       error: error.response?.data || error.message,
@@ -228,6 +250,7 @@ const sendWelcomeEmail = async (userId) => {
 
 module.exports = {
   login,
+  getUserData,
   getCurrentUser,
   validateToken,
   logout,
