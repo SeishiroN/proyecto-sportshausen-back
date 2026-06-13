@@ -33,5 +33,40 @@
     "createdAt": "2026-05-26T23:05:14.913Z",
     "nombre_artistico": "generic2",
     "user_id": 7
+  },
+  "eldanhausen@lol.com": {
+    "role": "luchador",
+    "email": "eldanhausen@lol.com",
+    "createdAt": "2026-05-29T00:39:23.466Z",
+    "nombre_artistico": "DanHausen",
+    "user_id": 8
+  },
+  "testing10@lol.com": {
+    "role": "luchador",
+    "email": "testing10@lol.com",
+    "createdAt": "2026-05-29T15:02:50.730Z",
+    "nombre_artistico": "Testing 10",
+    "user_id": 10
+  },
+  "testing12@lol.com": {
+    "role": "luchador",
+    "email": "testing12@lol.com",
+    "createdAt": "2026-05-29T15:10:30.209Z",
+    "nombre_artistico": "Testing12",
+    "user_id": 11
+  },
+  "testing13@lol.com": {
+    "role": "luchador",
+    "email": "testing13@lol.com",
+    "createdAt": "2026-05-29T15:15:41.408Z",
+    "nombre_artistico": "Testing13",
+    "user_id": 12
+  },
+  "yoelaba@lol.com": {
+    "role": "luchador",
+    "email": "yoelaba@lol.com",
+    "createdAt": "2026-06-13T17:01:09.967Z",
+    "nombre_artistico": "DanHausen",
+    "user_id": 13
   }
 }
