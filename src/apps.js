@@ -4,6 +4,8 @@ const morgan = require('morgan');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const emailRoutes = require('./routes/emailRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const mensajesRoutes = require('./routes/mensajesRoutes');
 const logger = require('./middlewares/logger');
 
 const app = express();
@@ -28,6 +30,8 @@ app.use(logger);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/emails', emailRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/mensajes', mensajesRoutes);
 
 // Ruta de test para descubrir el nombre y valores correctos del field role
 app.post('/test-xano', async (req, res) => {

@@ -27,8 +27,44 @@ const login = async (req, res) => {
 
     console.log('📦 LOGIN XANO RESPONSE:', JSON.stringify(xanoResponse.data, null, 2));
 
-    const token = xanoResponse.data.authToken || xanoResponse.data.token;
-    const userId = xanoResponse.data.user_id || xanoResponse.data.id;
+    // Extraer token de la respuesta de Xano en múltiples formas posibles
+    const extractToken = (obj) => {
+      if (!obj) return null;
+      const candidates = [
+        'authToken',
+        'token',
+        'access_token',
+        'auth_token'
+      ];
+      for (const k of candidates) {
+        if (obj[k]) return obj[k];
+      }
+      // Buscar en nested `data` o cualquier propiedad que contenga 'token' en el nombre
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (typeof val === 'string' && key.toLowerCase().includes('token')) return val;
+        if (val && typeof val === 'object') {
+          const nested = extractToken(val);
+          if (nested) return nested;
+        }
+      }
+      // Heurística: buscar cualquier string que parezca JWT (tres partes separadas por '.')
+      const findJWT = (o) => {
+        if (!o) return null;
+        if (typeof o === 'string' && o.split('.').length === 3) return o;
+        if (typeof o === 'object') {
+          for (const k of Object.keys(o)) {
+            const res = findJWT(o[k]);
+            if (res) return res;
+          }
+        }
+        return null;
+      };
+      return findJWT(obj);
+    };
+
+    const token = extractToken(xanoResponse.data);
+    const userId = xanoResponse.data.user_id || xanoResponse.data.id || xanoResponse.data.user?.id;
     
     // Intentar obtener el rol del email del usuario
     console.log('🔍 Buscando rol para email:', email);
@@ -70,6 +106,38 @@ const login = async (req, res) => {
         id: userId
       }
     };
+
+    // Intentar enriquecer la respuesta con datos de perfil desde Xano (p.ej. full_name)
+    let profileFetchDebug = null;
+    try {
+      if (token && userId) {
+        // Preferimos el endpoint /profile/{id} si existe en el workspace de Xano
+        const xanoProfile = await xanoService.getProfileById(token, userId);
+        profileFetchDebug = xanoProfile;
+        if (xanoProfile.success && xanoProfile.data) {
+          const p = xanoProfile.data;
+          if (p.full_name) responseData.user.full_name = p.full_name;
+          if (p.nombre_artistico) responseData.user.nombre_artistico = p.nombre_artistico;
+        } else {
+          // Fallback: intentar obtener datos genéricos
+          const fallback = await xanoService.getUserData(token, userId);
+          profileFetchDebug = profileFetchDebug || fallback;
+          if (fallback.success && fallback.data) {
+            const p = fallback.data;
+            if (p.full_name) responseData.user.full_name = p.full_name;
+            if (p.nombre_artistico) responseData.user.nombre_artistico = p.nombre_artistico;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo obtener profile desde Xano para enriquecer login response:', e.message || e);
+      profileFetchDebug = profileFetchDebug || { success: false, error: e.message };
+    }
+
+    // Añadir detalles de depuración temporales en la respuesta para diagnosticar por qué falta full_name
+    if (profileFetchDebug) {
+      responseData.profileDebug = profileFetchDebug;
+    }
 
     console.log('📤 LOGIN RESPONSE:', JSON.stringify(responseData, null, 2));
 
