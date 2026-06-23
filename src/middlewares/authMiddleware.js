@@ -87,9 +87,83 @@ const validateTokenWithXano = async (token) => {
   }
 };
 
+/**
+ * Middleware protect: Verifica que el usuario esté autenticado
+ * Similar a verifyAuth pero con nombres más comunes
+ */
+const protect = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: 'No se proporcionó token de autenticación',
+        message: 'Por favor inicia sesión'
+      });
+    }
+
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : authHeader;
+
+    // Verificar si el token está en la lista de activos
+    if (!activeTokens.has(token)) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token inválido o expirado',
+        message: 'Por favor inicia sesión nuevamente'
+      });
+    }
+
+    // Obtener datos del token
+    const tokenData = activeTokens.get(token);
+
+    // Adjuntar usuario al objeto request
+    req.user = tokenData;
+    req.token = token;
+    next();
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Error al validar token',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Middleware requireRole: Verifica que el usuario tenga un rol específico
+ */
+const requireRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuario no autenticado'
+      });
+    }
+
+    const userRole = req.user.role || req.user.tipo_usuario || req.user.type;
+
+    if (!userRole || !roles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Permiso denegado',
+        message: `Se requiere uno de los siguientes roles: ${roles.join(', ')}`
+      });
+    }
+
+    next();
+  };
+};
+
 module.exports = {
   verifyAuth,
   storeToken,
   removeToken,
-  validateTokenWithXano
+  validateTokenWithXano,
+  protect,
+  requireRole
 };
