@@ -7,6 +7,7 @@ const emailRoutes = require('./routes/emailRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const mensajesRoutes = require('./routes/mensajesRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
+const eventosRoutes = require('./routes/eventosRoutes');
 const logger = require('./middlewares/logger');
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/emails', emailRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/mensajes', mensajesRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/eventos', eventosRoutes);
 
 // Ruta de test para descubrir el nombre y valores correctos del field role
 app.post('/test-xano', async (req, res) => {
