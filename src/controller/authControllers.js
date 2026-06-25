@@ -14,6 +14,11 @@ const login = async (req, res) => {
       });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Formato de email inválido' });
+    }
+
     // Hacer llamada a Xano
     const xanoResponse = await xanoService.login(email, password);
 
@@ -25,7 +30,6 @@ const login = async (req, res) => {
       });
     }
 
-    console.log('📦 LOGIN XANO RESPONSE:', JSON.stringify(xanoResponse.data, null, 2));
 
     // Extraer token de la respuesta de Xano en múltiples formas posibles
     const extractToken = (obj) => {
@@ -66,34 +70,24 @@ const login = async (req, res) => {
     const token = extractToken(xanoResponse.data);
     const userId = xanoResponse.data.user_id || xanoResponse.data.id || xanoResponse.data.user?.id;
     
-    // Intentar obtener el rol del email del usuario
-    console.log('🔍 Buscando rol para email:', email);
-    
-    // Paso 1: Intentar obtener del mapeo local (usuarios que se registraron con nuestra app)
+    // Paso 1: rol desde mapeo local
     let userRole = userMapService.getUserRole(email);
-    
-    // Paso 2: Si no está en el mapeo local, intentar obtener de Xano
+
+    // Paso 2: rol desde Xano
     if (!userRole && token) {
-      console.log('📡 Intentando obtener rol de Xano...');
       const userResponse = await xanoService.getUserData(token, userId);
-      if (userResponse.success && userResponse.data && userResponse.data.role) {
+      if (userResponse.success && userResponse.data?.role) {
         userRole = userResponse.data.role;
-        console.log('✅ Rol obtenido de Xano:', userRole);
       }
     }
-    
-    // Paso 3: Usar default si no se pudo obtener
-    if (!userRole) {
-      console.log('⚠️ No se pudo obtener rol, usando default: luchador');
-      userRole = 'luchador';
-    }
 
-    console.log('✅ LOGIN - Final role:', userRole);
+    // Paso 3: default
+    if (!userRole) userRole = 'luchador';
 
-    // Guardar token en memoria
     if (token) {
       storeToken(token, {
-        email: email,
+        id: userId,
+        email,
         role: userRole
       });
     }
@@ -107,39 +101,20 @@ const login = async (req, res) => {
       }
     };
 
-    // Intentar enriquecer la respuesta con datos de perfil desde Xano (p.ej. full_name)
-    let profileFetchDebug = null;
+    // Enriquecer con full_name / nombre_artistico desde Xano
     try {
       if (token && userId) {
-        // Preferimos el endpoint /profile/{id} si existe en el workspace de Xano
         const xanoProfile = await xanoService.getProfileById(token, userId);
-        profileFetchDebug = xanoProfile;
-        if (xanoProfile.success && xanoProfile.data) {
-          const p = xanoProfile.data;
-          if (p.full_name) responseData.user.full_name = p.full_name;
-          if (p.nombre_artistico) responseData.user.nombre_artistico = p.nombre_artistico;
-        } else {
-          // Fallback: intentar obtener datos genéricos
-          const fallback = await xanoService.getUserData(token, userId);
-          profileFetchDebug = profileFetchDebug || fallback;
-          if (fallback.success && fallback.data) {
-            const p = fallback.data;
-            if (p.full_name) responseData.user.full_name = p.full_name;
-            if (p.nombre_artistico) responseData.user.nombre_artistico = p.nombre_artistico;
-          }
+        const profileData = xanoProfile.success ? xanoProfile.data
+          : (await xanoService.getUserData(token, userId)).data;
+        if (profileData) {
+          if (profileData.full_name) responseData.user.full_name = profileData.full_name;
+          if (profileData.nombre_artistico) responseData.user.nombre_artistico = profileData.nombre_artistico;
         }
       }
     } catch (e) {
-      console.warn('No se pudo obtener profile desde Xano para enriquecer login response:', e.message || e);
-      profileFetchDebug = profileFetchDebug || { success: false, error: e.message };
+      // No crítico — login sigue adelante sin estos campos
     }
-
-    // Añadir detalles de depuración temporales en la respuesta para diagnosticar por qué falta full_name
-    if (profileFetchDebug) {
-      responseData.profileDebug = profileFetchDebug;
-    }
-
-    console.log('📤 LOGIN RESPONSE:', JSON.stringify(responseData, null, 2));
 
     // Retornar la respuesta con el rol incluido
     return res.status(200).json({
@@ -149,11 +124,10 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ LOGIN ERROR:', error);
+    console.error('❌ LOGIN ERROR:', error.message);
     return res.status(500).json({
       success: false,
-      error: error.message,
-      message: 'Error interno del servidor'
+      error: 'Error interno del servidor'
     });
   }
 };
@@ -162,30 +136,28 @@ const signup = async (req, res) => {
   try {
     const { name, email, password, role = 'luchador' } = req.body;
 
-    console.log('📋 SIGNUP REQUEST:', {
-      name: name ? `✅ ${name}` : '❌ undefined',
-      email: email ? `✅ ${email}` : '❌ undefined',
-      password: password ? `✅ (${password.length} chars)` : '❌ undefined',
-      role: role ? `✅ ${role}` : '❌ undefined',
-      allBody: req.body
-    });
-
     // Validar que los campos requeridos estén presentes
     if (!name || !email || !password) {
-      console.log('❌ VALIDATION FAILED: Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Nombre, email y contraseña son requeridos'
       });
     }
 
-    // Validar longitud de contraseña
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Formato de email inválido' });
+    }
+
     if (password.length < 8) {
-      console.log('❌ VALIDATION FAILED: Password too short');
       return res.status(400).json({
         success: false,
         error: 'La contraseña debe tener al menos 8 caracteres'
       });
+    }
+
+    if (name.trim().length < 2) {
+      return res.status(400).json({ success: false, error: 'El nombre debe tener al menos 2 caracteres' });
     }
 
     // Validar rol
@@ -204,13 +176,9 @@ const signup = async (req, res) => {
     // Usar el rol normalizado
     const finalRole = normalizedRole;
 
-    // Hacer llamada a Xano para signup
-    console.log('🔄 Llamando a xanoService.signup con role normalizado:', finalRole);
     const xanoResponse = await xanoService.signup(name, email, password, finalRole);
-    console.log('📦 XANO RESPONSE:', JSON.stringify(xanoResponse, null, 2));
 
     if (!xanoResponse.success) {
-      console.log('❌ XANO ERROR - Status:', xanoResponse.status, 'Error:', xanoResponse.error);
       return res.status(xanoResponse.status).json({
         success: false,
         error: xanoResponse.error,
@@ -223,8 +191,6 @@ const signup = async (req, res) => {
     // Para signup, SIEMPRE devolver el rol que se normalizó y validó
     const userId = xanoResponse.data.user_id || xanoResponse.data.id;
     
-    console.log('✅ SIGNUP - Rol normalizado:', finalRole);
-
     // 💾 Guardar el usuario en el mapeo local (para que login pueda obtener el rol)
     userMapService.saveUser(email, finalRole, {
       nombre_artistico: name,
@@ -261,8 +227,6 @@ const signup = async (req, res) => {
       }
     };
 
-    console.log('✅ SIGNUP SUCCESS - User Role:', finalRole, 'Email:', email);
-
     // Retornar la respuesta
     return res.status(201).json({
       success: true,
@@ -271,10 +235,10 @@ const signup = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('❌ SIGNUP ERROR:', error.message);
     return res.status(500).json({
       success: false,
-      error: error.message,
-      message: 'Error interno del servidor'
+      error: 'Error interno del servidor'
     });
   }
 };

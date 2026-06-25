@@ -13,36 +13,21 @@ const xanoAPI = axios.create({
  */
 const login = async (email, password) => {
   try {
-    console.log('🔐 LOGIN ATTEMPT:');
-    console.log('  📧 Email:', email);
-    console.log('  🔑 Password length:', password.length);
-    console.log('  🌐 Base URL:', process.env.XANO_API_URL);
+    console.log('🔐 Login attempt for:', email);
     
     const response = await xanoAPI.post('/auth/login', {
       email,
       password
     });
     
-    console.log('✅ LOGIN SUCCESS from Xano:', {
-      hasAuthToken: !!response.data.authToken,
-      hasToken: !!response.data.token,
-      hasUserId: !!response.data.user_id,
-      status: response.status
-    });
+    console.log('✅ Login exitoso para:', email);
     
     return {
       success: true,
       data: response.data
     };
   } catch (error) {
-    console.error('❌ LOGIN FAILED:');
-    console.error('  Status:', error.response?.status);
-    console.error('  Headers sent:', error.config?.headers);
-    console.error('  URL:', error.config?.url);
-    console.error('  Base URL:', error.config?.baseURL);
-    console.error('  Full URL:', error.config?.baseURL + error.config?.url);
-    console.error('  Response data:', error.response?.data);
-    console.error('  Error message:', error.message);
+    console.error('❌ Login fallido para:', email, '| status:', error.response?.status);
     
     return {
       success: false,
@@ -195,12 +180,7 @@ const logout = async (token) => {
  */
 const signup = async (name, email, password, role = 'luchador') => {
   try {
-    console.log('🚀 xanoService.signup - Enviando a Xano:', {
-      nombre_artistico: name,
-      email,
-      password: '***',
-      role: role
-    });
+    console.log('🚀 Signup para:', email, '| rol:', role);
     // Enviar EXACTAMENTE con los valores que Xano espera
     const response = await xanoAPI.post('/auth/signup', {
       nombre_artistico: name,
@@ -208,17 +188,13 @@ const signup = async (name, email, password, role = 'luchador') => {
       password,
       role: role  // Valores permitidos: luchador, booker, agrupacion, admin
     });
-    console.log('✅ XANO RESPONSE SUCCESS:', response.data);
+    console.log('✅ Signup exitoso para:', email);
     return {
       success: true,
       data: response.data
     };
   } catch (error) {
-    console.error('❌ XANO ERROR DETAILS:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
+    console.error('❌ Signup fallido para:', email, '| status:', error.response?.status);
     return {
       success: false,
       error: error.response?.data || error.message,

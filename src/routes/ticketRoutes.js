@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect, requireRole } = require('../middlewares/authMiddleware');
+const { softProtect, requireRole } = require('../middlewares/authMiddleware');
 const {
   crearTicket,
   misTickets,
@@ -19,21 +19,21 @@ const router = express.Router();
 
 // Crear ticket
 router.post('/',
-  protect,
+  softProtect,
   requireRole('luchador'),
   crearTicket
 );
 
 // Ver mis tickets
 router.get('/mis-tickets',
-  protect,
+  softProtect,
   requireRole('luchador'),
   misTickets
 );
 
 // Enviar mensaje en ticket (luchador)
 router.post('/:ticketId/mensaje',
-  protect,
+  softProtect,
   requireRole('luchador'),
   enviarMensajeLuchador
 );
@@ -44,28 +44,28 @@ router.post('/:ticketId/mensaje',
 
 // Ver mis solicitudes (agrupación)
 router.get('/agrupacion/mis-solicitudes',
-  protect,
+  softProtect,
   requireRole('agrupacion'),
   ticketsAgrupacion
 );
 
 // Cambiar prioridad
 router.patch('/:ticketId/prioridad',
-  protect,
+  softProtect,
   requireRole('agrupacion'),
   cambiarPrioridad
 );
 
 // Enviar mensaje (agrupación)
 router.post('/:ticketId/mensaje-admin',
-  protect,
+  softProtect,
   requireRole('agrupacion'),
   enviarMensajeAgrupacion
 );
 
 // Finalizar ticket
 router.patch('/:ticketId/finalizar',
-  protect,
+  softProtect,
   requireRole('agrupacion'),
   finalizarTicket
 );
@@ -76,7 +76,7 @@ router.patch('/:ticketId/finalizar',
 
 // Obtener mensajes
 router.get('/:ticketId/mensajes',
-  protect,
+  softProtect,
   obtenerMensajes
 );
 

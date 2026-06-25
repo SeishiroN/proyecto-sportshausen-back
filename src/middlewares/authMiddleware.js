@@ -1,5 +1,3 @@
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
 
 // Almacenamiento en memoria para tokens activos (en producción usar Redis)
 const activeTokens = new Map();
@@ -65,26 +63,6 @@ const storeToken = (token, userData) => {
  */
 const removeToken = (token) => {
   activeTokens.delete(token);
-};
-
-/**
- * Validar token con Xano (opcional - si Xano proporciona endpoint de validación)
- */
-const validateTokenWithXano = async (token) => {
-  try {
-    const response = await axios.get(
-      `${process.env.XANO_API_URL}/auth/validate`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    return response.data;
-  } catch (error) {
-    return null;
-  }
 };
 
 /**
@@ -159,11 +137,47 @@ const requireRole = (...roles) => {
   };
 };
 
+/**
+ * softProtect: valida el Bearer token contra Xano y extrae id/role reales.
+ * Intenta múltiples endpoints conocidos de Xano hasta obtener datos del usuario.
+ * NO confía en headers del cliente para rol o id.
+ */
+const axios = require('axios');
+const softProtect = async (req, res, next) => {
+  const h = req.headers.authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : h || null;
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Token requerido' });
+  }
+
+  const xanoBase = process.env.XANO_API_URL;
+  const authCfg = { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 };
+  const endpoints = ['/auth/me', '/user', '/auth/user', '/users/me'];
+
+  for (const ep of endpoints) {
+    try {
+      const { data } = await axios.get(`${xanoBase}${ep}`, authCfg);
+      if (data && (data.id || data.user_id)) {
+        req.token = token;
+        req.user = {
+          id: data.id || data.user_id,
+          role: data.role || data.tipo_usuario || null
+        };
+        return next();
+      }
+    } catch (_) {
+      // continuar al siguiente endpoint
+    }
+  }
+
+  return res.status(401).json({ success: false, error: 'Token inválido o expirado' });
+};
+
 module.exports = {
   verifyAuth,
   storeToken,
   removeToken,
-  validateTokenWithXano,
   protect,
-  requireRole
+  requireRole,
+  softProtect
 };

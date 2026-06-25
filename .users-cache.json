@@ -68,5 +68,19 @@
     "createdAt": "2026-06-13T17:01:09.967Z",
     "nombre_artistico": "DanHausen",
     "user_id": 13
+  },
+  "test@test.com": {
+    "role": "agrupacion",
+    "email": "test@test.com",
+    "createdAt": "2026-06-25T01:11:32.624Z",
+    "nombre_artistico": "FNL",
+    "user_id": 15
+  },
+  "test2@test.com": {
+    "role": "luchador",
+    "email": "test2@test.com",
+    "createdAt": "2026-06-25T01:44:16.584Z",
+    "nombre_artistico": "DanHausen",
+    "user_id": 16
   }
 }

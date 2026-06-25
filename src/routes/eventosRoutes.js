@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { softProtect } = require('../middlewares/authMiddleware');
 
 const XANO_URL = process.env.XANO_SPORTSHAUSEN_URL || 'https://x8ki-letl-twmt.n7.xano.io/api:sportshausen';
 
@@ -11,7 +12,7 @@ const getToken = (req) => {
 const cfg = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
 
 // GET /api/eventos
-router.get('/', async (req, res) => {
+router.get('/', softProtect, async (req, res) => {
   try {
     const r = await axios.get(`${XANO_URL}/eventos`, cfg(getToken(req)));
     res.json(r.data ?? []);
@@ -25,11 +26,11 @@ const calcHoraFin = (horaInicio, duracion) => {
   const [hh, mm] = horaInicio.split(':').map(Number);
   let fin = hh + duracion;
   if (fin >= 24) fin -= 24;
-  return `${String(fin).padStart(2, '0')}:${String(mm).padStart(2, '00')}`;
+  return `${String(fin).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 };
 
 // POST /api/eventos
-router.post('/', async (req, res) => {
+router.post('/', softProtect, async (req, res) => {
   try {
     const token = getToken(req);
     const { hora_inicio, duracion, ...rest } = req.body;
@@ -46,7 +47,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/eventos/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', softProtect, async (req, res) => {
   try {
     const r = await axios.put(`${XANO_URL}/eventos/${req.params.id}`, req.body, cfg(getToken(req)));
     res.json(r.data ?? {});
@@ -57,7 +58,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/eventos/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', softProtect, async (req, res) => {
   try {
     const r = await axios.delete(`${XANO_URL}/eventos/${req.params.id}`, cfg(getToken(req)));
     res.json(r.data ?? {});

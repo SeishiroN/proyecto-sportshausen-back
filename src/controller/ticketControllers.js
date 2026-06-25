@@ -1,5 +1,7 @@
 const axios = require('axios');
 
+const XANO_URL = process.env.XANO_SPORTSHAUSEN_URL || process.env.XANO_API_URL;
+
 const TIPOS_TICKET = [
   'Consulta sobre evento',
   'Problema con postulación',
@@ -52,8 +54,9 @@ exports.crearTicket = async (req, res) => {
     console.log('[Ticket POST] Payload:', payload);
 
     const response = await axios.post(
-      `${process.env.XANO_API_URL}/tickets`,
-      payload
+      `${XANO_URL}/tickets`,
+      payload,
+      { headers: { Authorization: `Bearer ${req.token}` } }
     );
 
     res.status(201).json({
@@ -79,7 +82,7 @@ exports.misTickets = async (req, res) => {
     const luchador_id = req.user.id;
 
     const response = await axios.get(
-      `${process.env.XANO_API_URL}/tickets`,
+      `${XANO_URL}/tickets`,
       {
         params: { luchador_id },
         headers: { 'Authorization': `Bearer ${req.token}` }
@@ -125,8 +128,9 @@ exports.enviarMensajeLuchador = async (req, res) => {
     };
 
     const response = await axios.post(
-      `${process.env.XANO_API_URL}/ticket_mensajes`,
-      payload
+      `${XANO_URL}/ticket_mensajes`,
+      payload,
+      { headers: { Authorization: `Bearer ${req.token}` } }
     );
 
     res.json({
@@ -151,7 +155,7 @@ exports.ticketsAgrupacion = async (req, res) => {
     const agrupacion_id = req.user.id;
 
     const response = await axios.get(
-      `${process.env.XANO_API_URL}/tickets`,
+      `${XANO_URL}/tickets`,
       {
         params: { agrupacion_id },
         headers: { 'Authorization': `Bearer ${req.token}` }
@@ -196,8 +200,9 @@ exports.cambiarPrioridad = async (req, res) => {
     };
 
     const response = await axios.patch(
-      `${process.env.XANO_API_URL}/tickets/${ticketId}`,
-      payload
+      `${XANO_URL}/tickets/${ticketId}`,
+      payload,
+      { headers: { Authorization: `Bearer ${req.token}` } }
     );
 
     res.json({
@@ -234,25 +239,18 @@ exports.enviarMensajeAgrupacion = async (req, res) => {
       fecha_envio: new Date().toISOString()
     };
 
-    await axios.post(
-      `${process.env.XANO_API_URL}/ticket_mensajes`,
-      msgPayload
-    );
+    const authHeader = { headers: { Authorization: `Bearer ${req.token}` } };
+
+    await axios.post(`${XANO_URL}/ticket_mensajes`, msgPayload, authHeader);
 
     // Auto-cambiar estado a EN_PROCESO si está ABIERTO
     try {
-      const ticketRes = await axios.get(
-        `${process.env.XANO_API_URL}/tickets/${ticketId}`
-      );
-
+      const ticketRes = await axios.get(`${XANO_URL}/tickets/${ticketId}`, authHeader);
       if (ticketRes.data.estado === 'ABIERTO') {
-        await axios.patch(
-          `${process.env.XANO_API_URL}/tickets/${ticketId}`,
-          { estado: 'EN_PROCESO' }
-        );
+        await axios.patch(`${XANO_URL}/tickets/${ticketId}`, { estado: 'EN_PROCESO' }, authHeader);
       }
     } catch (e) {
-      console.warn('No se pudo actualizar estado del ticket');
+      // No crítico — el mensaje se envió igual
     }
 
     res.json({
@@ -282,8 +280,9 @@ exports.finalizarTicket = async (req, res) => {
     };
 
     const response = await axios.patch(
-      `${process.env.XANO_API_URL}/tickets/${ticketId}`,
-      payload
+      `${XANO_URL}/tickets/${ticketId}`,
+      payload,
+      { headers: { Authorization: `Bearer ${req.token}` } }
     );
 
     res.json({
@@ -308,9 +307,10 @@ exports.obtenerMensajes = async (req, res) => {
     const { ticketId } = req.params;
 
     const response = await axios.get(
-      `${process.env.XANO_API_URL}/ticket_mensajes`,
+      `${XANO_URL}/ticket_mensajes`,
       {
-        params: { ticket_id: parseInt(ticketId) }
+        params: { ticket_id: parseInt(ticketId) },
+        headers: { Authorization: `Bearer ${req.token}` }
       }
     );
 
