@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { getXanoToken } = require('../middlewares/authMiddleware');
 
 // Usa XANO_MENSAJERIA_URL si existe (grupo separado), si no cae al URL principal
 const xanoAPI = axios.create({
@@ -9,11 +10,11 @@ const xanoAPI = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
-// Extrae el token Xano del header Authorization y lo adjunta como req.token
+// Extrae el token de Xano (decodificando nuestro JWT si aplica) y lo adjunta como req.token
 const extractToken = (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'Sin token de autenticación' });
-  req.token = auth.startsWith('Bearer ') ? auth.slice(7) : auth;
+  const token = getXanoToken(req);
+  if (!token) return res.status(401).json({ error: 'Sin token de autenticación' });
+  req.token = token;
   next();
 };
 

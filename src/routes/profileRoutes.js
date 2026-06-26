@@ -1,18 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { getXanoToken } = require('../middlewares/authMiddleware');
 
 const XANO_AUTH_URL = process.env.XANO_API_URL;
 
-// Extrae el Bearer token del header sin pasar por activeTokens
-const extractToken = (req) => {
-  const h = req.headers.authorization || '';
-  return h.startsWith('Bearer ') ? h.slice(7) : h || null;
-};
-
 // GET /api/profile/:id — Xano valida el token
 router.get('/:id', async (req, res) => {
-  const token = extractToken(req);
+  const token = getXanoToken(req);
   if (!token) return res.status(401).json({ error: 'Token requerido' });
 
   try {
@@ -29,7 +24,7 @@ router.get('/:id', async (req, res) => {
 
 // PATCH /api/profile/:id — Xano valida el token y actualiza
 router.patch('/:id', async (req, res) => {
-  const token = extractToken(req);
+  const token = getXanoToken(req);
   if (!token) return res.status(401).json({ error: 'Token requerido' });
 
   try {
@@ -47,7 +42,7 @@ router.patch('/:id', async (req, res) => {
 
 // PUT /api/profile/:id — alias de PATCH
 router.put('/:id', async (req, res) => {
-  const token = extractToken(req);
+  const token = getXanoToken(req);
   if (!token) return res.status(401).json({ error: 'Token requerido' });
 
   try {

@@ -1,86 +1,9 @@
 {
-  "booker_test_2@example.com": {
-    "role": "booker",
-    "email": "booker_test_2@example.com",
-    "createdAt": "2026-05-17T23:50:08.834Z",
-    "nombre_artistico": "heyman",
-    "user_id": 3
-  },
-  "group_test_2@example.com": {
-    "role": "agrupacion",
-    "email": "group_test_2@example.com",
-    "createdAt": "2026-05-17T23:50:57.236Z",
-    "nombre_artistico": "raw",
-    "user_id": 4
-  },
-  "smdown@xdd.com": {
-    "role": "agrupacion",
-    "email": "smdown@xdd.com",
-    "createdAt": "2026-05-17T23:58:19.892Z",
-    "nombre_artistico": "smdown",
-    "user_id": 5
-  },
-  "rob_manfinfla@xddd.com": {
-    "role": "agrupacion",
-    "email": "rob_manfinfla@xddd.com",
-    "createdAt": "2026-05-26T22:59:50.470Z",
-    "nombre_artistico": "manfinfla",
-    "user_id": 6
-  },
-  "generic2@xdd.com": {
-    "role": "agrupacion",
-    "email": "generic2@xdd.com",
-    "createdAt": "2026-05-26T23:05:14.913Z",
-    "nombre_artistico": "generic2",
-    "user_id": 7
-  },
-  "eldanhausen@lol.com": {
-    "role": "luchador",
-    "email": "eldanhausen@lol.com",
-    "createdAt": "2026-05-29T00:39:23.466Z",
-    "nombre_artistico": "DanHausen",
-    "user_id": 8
-  },
-  "testing10@lol.com": {
-    "role": "luchador",
-    "email": "testing10@lol.com",
-    "createdAt": "2026-05-29T15:02:50.730Z",
-    "nombre_artistico": "Testing 10",
-    "user_id": 10
-  },
-  "testing12@lol.com": {
-    "role": "luchador",
-    "email": "testing12@lol.com",
-    "createdAt": "2026-05-29T15:10:30.209Z",
-    "nombre_artistico": "Testing12",
-    "user_id": 11
-  },
-  "testing13@lol.com": {
-    "role": "luchador",
-    "email": "testing13@lol.com",
-    "createdAt": "2026-05-29T15:15:41.408Z",
-    "nombre_artistico": "Testing13",
-    "user_id": 12
-  },
-  "yoelaba@lol.com": {
-    "role": "luchador",
-    "email": "yoelaba@lol.com",
-    "createdAt": "2026-06-13T17:01:09.967Z",
-    "nombre_artistico": "DanHausen",
-    "user_id": 13
-  },
   "test@test.com": {
     "role": "agrupacion",
     "email": "test@test.com",
-    "createdAt": "2026-06-25T01:11:32.624Z",
-    "nombre_artistico": "FNL",
-    "user_id": 15
-  },
-  "test2@test.com": {
-    "role": "luchador",
-    "email": "test2@test.com",
-    "createdAt": "2026-06-25T01:44:16.584Z",
-    "nombre_artistico": "DanHausen",
-    "user_id": 16
+    "createdAt": "2026-06-26T01:23:28.869Z",
+    "user_id": 15,
+    "passwordHash": "$2b$10$WIbMi8Im0R2FnMfqgGgpMusrBQRB.qDG2kAbtCHlEt/SBSlRyT1NO"
   }
 }

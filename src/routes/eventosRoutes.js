@@ -1,20 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const { softProtect } = require('../middlewares/authMiddleware');
+const { softProtect, getXanoToken } = require('../middlewares/authMiddleware');
 
 const XANO_URL = process.env.XANO_SPORTSHAUSEN_URL || 'https://x8ki-letl-twmt.n7.xano.io/api:sportshausen';
 
-const getToken = (req) => {
-  const h = req.headers.authorization;
-  return h?.startsWith('Bearer ') ? h.slice(7) : h;
-};
 const cfg = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
 
 // GET /api/eventos
 router.get('/', softProtect, async (req, res) => {
   try {
-    const r = await axios.get(`${XANO_URL}/eventos`, cfg(getToken(req)));
+    const r = await axios.get(`${XANO_URL}/eventos`, cfg(getXanoToken(req)));
     res.json(r.data ?? []);
   } catch (e) {
     console.error('GET /eventos:', e.response?.data || e.message);
@@ -32,7 +28,7 @@ const calcHoraFin = (horaInicio, duracion) => {
 // POST /api/eventos
 router.post('/', softProtect, async (req, res) => {
   try {
-    const token = getToken(req);
+    const token = getXanoToken(req);
     const { hora_inicio, duracion, ...rest } = req.body;
     const hora_fin = calcHoraFin(hora_inicio, duracion);
     const payload = { ...rest, hora_inicio, duracion, hora_fin };
@@ -49,7 +45,7 @@ router.post('/', softProtect, async (req, res) => {
 // PUT /api/eventos/:id
 router.put('/:id', softProtect, async (req, res) => {
   try {
-    const r = await axios.put(`${XANO_URL}/eventos/${req.params.id}`, req.body, cfg(getToken(req)));
+    const r = await axios.put(`${XANO_URL}/eventos/${req.params.id}`, req.body, cfg(getXanoToken(req)));
     res.json(r.data ?? {});
   } catch (e) {
     console.error('PUT /eventos:', e.response?.data || e.message);
@@ -60,7 +56,7 @@ router.put('/:id', softProtect, async (req, res) => {
 // DELETE /api/eventos/:id
 router.delete('/:id', softProtect, async (req, res) => {
   try {
-    const r = await axios.delete(`${XANO_URL}/eventos/${req.params.id}`, cfg(getToken(req)));
+    const r = await axios.delete(`${XANO_URL}/eventos/${req.params.id}`, cfg(getXanoToken(req)));
     res.json(r.data ?? {});
   } catch (e) {
     console.error('DELETE /eventos:', e.response?.data || e.message);

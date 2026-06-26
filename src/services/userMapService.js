@@ -1,95 +1,93 @@
 /**
- * Servicio para guardar un mapeo local de email -> rol
- * Esto permite que durante login podamos recuperar el rol sin consultarlo a Xano
+ * Caché local de email → { rol, passwordHash }
+ * Permite validar credenciales con bcrypt en Node.js antes de llamar a Xano.
+ * Solo almacena el HASH de la contraseña, nunca la contraseña en texto plano.
  */
 
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
 const USERS_MAP_FILE = path.join(__dirname, '..', '..', '.users-cache.json');
 
-// Cargar mapeo al iniciar
 let usersMap = {};
 try {
   if (fs.existsSync(USERS_MAP_FILE)) {
-    const data = fs.readFileSync(USERS_MAP_FILE, 'utf8');
-    usersMap = JSON.parse(data);
-    console.log('📖 Mapeo de usuarios cargado:', Object.keys(usersMap).length, 'usuarios');
+    usersMap = JSON.parse(fs.readFileSync(USERS_MAP_FILE, 'utf8'));
   }
-} catch (error) {
-  console.error('Error al cargar mapeo de usuarios:', error.message);
+} catch {
   usersMap = {};
 }
 
+const _persist = () => {
+  try { fs.writeFileSync(USERS_MAP_FILE, JSON.stringify(usersMap, null, 2)); }
+  catch (e) { console.error('[userMapService] Error al persistir cache:', e.message); }
+};
+
 /**
- * Guardar un usuario en el mapeo local
+ * Guarda email, rol y hash de contraseña (bcrypt).
+ * userData puede incluir { nombre_artistico, user_id, passwordHash }.
  */
 const saveUser = (email, role, userData = {}) => {
   try {
     email = email.toLowerCase().trim();
     usersMap[email] = {
-      role: role,
-      email: email,
+      role,
+      email,
       createdAt: new Date().toISOString(),
-      ...userData
+      ...userData,
     };
-    
-    // Guardar a disco
-    fs.writeFileSync(USERS_MAP_FILE, JSON.stringify(usersMap, null, 2));
-    console.log('💾 Usuario guardado en cache:', email, 'Role:', role);
+    _persist();
     return true;
-  } catch (error) {
-    console.error('Error al guardar usuario:', error.message);
+  } catch (e) {
+    console.error('[userMapService] Error al guardar usuario:', e.message);
     return false;
   }
 };
 
-/**
- * Obtener rol de un usuario por email
- */
+/** Actualiza solo el rol sin tocar otros campos (passwordHash, etc.). */
+const updateRole = (email, role) => {
+  try {
+    email = email.toLowerCase().trim();
+    if (usersMap[email]) {
+      usersMap[email].role = role;
+    } else {
+      usersMap[email] = { role, email, createdAt: new Date().toISOString() };
+    }
+    _persist();
+    return true;
+  } catch (e) {
+    console.error('[userMapService] Error al actualizar rol:', e.message);
+    return false;
+  }
+};
+
+/** Devuelve el rol local o null si no existe. */
 const getUserRole = (email) => {
   try {
     email = email.toLowerCase().trim();
-    const user = usersMap[email];
-    if (user && user.role) {
-      console.log('🎯 Rol encontrado en cache para', email, ':', user.role);
-      return user.role;
-    }
-    console.log('❌ No se encontró rol en cache para', email);
-    return null;
-  } catch (error) {
-    console.error('Error al obtener rol:', error.message);
-    return null;
-  }
+    return usersMap[email]?.role || null;
+  } catch { return null; }
 };
 
-/**
- * Obtener todos los usuarios cacheados
- */
-const getAllUsers = () => {
-  return usersMap;
+/** Devuelve el hash bcrypt almacenado para ese email, o null. */
+const getPasswordHash = (email) => {
+  try {
+    email = email.toLowerCase().trim();
+    return usersMap[email]?.passwordHash || null;
+  } catch { return null; }
 };
 
-/**
- * Limpiar cache
- */
+const getAllUsers = () => usersMap;
+
 const clearCache = () => {
   try {
     usersMap = {};
-    if (fs.existsSync(USERS_MAP_FILE)) {
-      fs.unlinkSync(USERS_MAP_FILE);
-    }
-    console.log('🗑️ Cache de usuarios limpiado');
+    if (fs.existsSync(USERS_MAP_FILE)) fs.unlinkSync(USERS_MAP_FILE);
     return true;
-  } catch (error) {
-    console.error('Error al limpiar cache:', error.message);
+  } catch (e) {
+    console.error('[userMapService] Error al limpiar cache:', e.message);
     return false;
   }
 };
 
-module.exports = {
-  saveUser,
-  getUserRole,
-  getAllUsers,
-  clearCache
-};
+module.exports = { saveUser, updateRole, getUserRole, getPasswordHash, getAllUsers, clearCache };

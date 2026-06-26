@@ -11,24 +11,30 @@ const xanoAPI = axios.create({
 /**
  * Llamar al endpoint de login de Xano
  */
+/**
+ * Obtener el usuario autenticado actual vía /auth/me (endpoint estándar de Xano).
+ * Devuelve todos los campos del usuario incluyendo `role`, `full_name`, etc.
+ */
+const getMe = async (token) => {
+  try {
+    const response = await xanoAPI.get('/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log('[getMe] éxito:', JSON.stringify(response.data, null, 2));
+    return { success: true, data: response.data };
+  } catch (err) {
+    console.log('[getMe] falló:', err.response?.status || err.message);
+    return { success: false, data: null };
+  }
+};
+
 const login = async (email, password) => {
   try {
-    console.log('🔐 Login attempt for:', email);
-    
-    const response = await xanoAPI.post('/auth/login', {
-      email,
-      password
-    });
-    
-    console.log('✅ Login exitoso para:', email);
-    
-    return {
-      success: true,
-      data: response.data
-    };
+    const response = await xanoAPI.post('/auth/login', { email, password });
+    console.log('[xano login] full response keys:', Object.keys(response.data || {}));
+    console.log('[xano login] data:', JSON.stringify(response.data, null, 2));
+    return { success: true, data: response.data };
   } catch (error) {
-    console.error('❌ Login fallido para:', email, '| status:', error.response?.status);
-    
     return {
       success: false,
       error: error.response?.data || error.message,
@@ -73,6 +79,13 @@ const getUserData = async (token, userId = null) => {
 
   endpointsToTry.push({
     method: 'get',
+    url: '/auth/me',
+    headers: { 'Authorization': `Bearer ${token}` },
+    name: 'GET /auth/me'
+  });
+
+  endpointsToTry.push({
+    method: 'get',
     url: '/auth/user',
     headers: { 'Authorization': `Bearer ${token}` },
     name: 'GET /auth/user'
@@ -95,12 +108,7 @@ const getUserData = async (token, userId = null) => {
       const response = await xanoAPI[endpoint.method](endpoint.url, config);
       
       if (response.data) {
-        console.log(`  ✅ Éxito en ${endpoint.name}:`, {
-          hasRole: !!response.data.role,
-          role: response.data.role || 'N/A',
-          email: response.data.email,
-          id: response.data.id
-        });
+        console.log(`  ✅ Éxito en ${endpoint.name} - todos los campos:`, JSON.stringify(response.data, null, 2));
         return {
           success: true,
           data: response.data,
@@ -180,21 +188,14 @@ const logout = async (token) => {
  */
 const signup = async (name, email, password, role = 'luchador') => {
   try {
-    console.log('🚀 Signup para:', email, '| rol:', role);
-    // Enviar EXACTAMENTE con los valores que Xano espera
     const response = await xanoAPI.post('/auth/signup', {
       nombre_artistico: name,
       email,
-      password,
-      role: role  // Valores permitidos: luchador, booker, agrupacion, admin
+      password,   // bcrypt hash generado en authControllers
+      role,
     });
-    console.log('✅ Signup exitoso para:', email);
-    return {
-      success: true,
-      data: response.data
-    };
+    return { success: true, data: response.data };
   } catch (error) {
-    console.error('❌ Signup fallido para:', email, '| status:', error.response?.status);
     return {
       success: false,
       error: error.response?.data || error.message,
@@ -226,6 +227,7 @@ const sendWelcomeEmail = async (userId) => {
 
 module.exports = {
   login,
+  getMe,
   getUserData,
   /**
    * Obtener perfil detallado por id usando el endpoint /profile/{id}

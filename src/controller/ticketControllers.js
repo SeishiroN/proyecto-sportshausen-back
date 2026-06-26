@@ -1,6 +1,4 @@
-const axios = require('axios');
-
-const XANO_URL = process.env.XANO_SPORTSHAUSEN_URL || process.env.XANO_API_URL;
+const store = require('../services/ticketStoreService');
 
 const TIPOS_TICKET = [
   'Consulta sobre evento',
@@ -10,7 +8,6 @@ const TIPOS_TICKET = [
 ];
 
 const PRIORIDADES = ['BAJA', 'MEDIANA', 'ALTA', 'URGENTE'];
-const ESTADOS = ['ABIERTO', 'EN_PROCESO', 'CERRADO'];
 
 /**
  * LUCHADOR: Crear ticket
@@ -21,25 +18,17 @@ exports.crearTicket = async (req, res) => {
     const { tipo_solicitud, motivo, agrupacion_id, evento_id } = req.body;
     const luchador_id = req.user.id;
 
-    // Validaciones
     if (!tipo_solicitud || !TIPOS_TICKET.includes(tipo_solicitud)) {
-      return res.status(400).json({
-        error: 'Tipo de solicitud inválido'
-      });
+      return res.status(400).json({ error: 'Tipo de solicitud inválido' });
     }
     if (!motivo || motivo.trim().length < 10) {
-      return res.status(400).json({
-        error: 'El motivo debe tener al menos 10 caracteres'
-      });
+      return res.status(400).json({ error: 'El motivo debe tener al menos 10 caracteres' });
     }
     if (!agrupacion_id) {
-      return res.status(400).json({
-        error: 'Agrupación no especificada'
-      });
+      return res.status(400).json({ error: 'Agrupación no especificada' });
     }
 
-    // POST a Xano
-    const payload = {
+    const ticket = store.crearTicket({
       luchador_id,
       agrupacion_id,
       tipo_solicitud,
@@ -48,28 +37,14 @@ exports.crearTicket = async (req, res) => {
       prioridad: 'BAJA',
       evento_id: evento_id || null,
       fecha_creacion: new Date().toISOString(),
-      fecha_actualizacion: new Date().toISOString()
-    };
-
-    console.log('[Ticket POST] Payload:', payload);
-
-    const response = await axios.post(
-      `${XANO_URL}/tickets`,
-      payload,
-      { headers: { Authorization: `Bearer ${req.token}` } }
-    );
-
-    res.status(201).json({
-      success: true,
-      ticket: response.data,
-      message: 'Ticket creado exitosamente'
+      fecha_actualizacion: new Date().toISOString(),
     });
+
+    res.status(201).json({ success: true, ticket, message: 'Ticket creado exitosamente' });
 
   } catch (error) {
     console.error('[crearTicket ERROR]', error.message);
-    res.status(500).json({
-      error: error.response?.data?.message || error.message
-    });
+    res.status(500).json({ error: 'Error al crear ticket' });
   }
 };
 
@@ -79,30 +54,13 @@ exports.crearTicket = async (req, res) => {
  */
 exports.misTickets = async (req, res) => {
   try {
-    const luchador_id = req.user.id;
+    const tickets = store.getTicketsByLuchador(req.user.id)
+      .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
 
-    const response = await axios.get(
-      `${XANO_URL}/tickets`,
-      {
-        params: { luchador_id },
-        headers: { 'Authorization': `Bearer ${req.token}` }
-      }
-    );
-
-    const tickets = Array.isArray(response.data) ? response.data : [];
-
-    res.json({
-      total: tickets.length,
-      tickets: tickets.sort((a, b) =>
-        new Date(b.fecha_creacion) - new Date(a.fecha_creacion)
-      )
-    });
-
+    res.json({ total: tickets.length, tickets });
   } catch (error) {
     console.error('[misTickets ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al cargar tickets'
-    });
+    res.status(500).json({ error: 'Error al cargar tickets' });
   }
 };
 
@@ -114,35 +72,22 @@ exports.enviarMensajeLuchador = async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { contenido } = req.body;
-    const luchador_id = req.user.id;
 
     if (!contenido || contenido.trim().length === 0) {
       return res.status(400).json({ error: 'Mensaje vacío' });
     }
 
-    const payload = {
+    const mensaje = store.crearMensaje({
       ticket_id: parseInt(ticketId),
       remitente: 'LUCHADOR',
       contenido: contenido.trim(),
-      fecha_envio: new Date().toISOString()
-    };
-
-    const response = await axios.post(
-      `${XANO_URL}/ticket_mensajes`,
-      payload,
-      { headers: { Authorization: `Bearer ${req.token}` } }
-    );
-
-    res.json({
-      success: true,
-      mensaje: response.data
+      fecha_envio: new Date().toISOString(),
     });
 
+    res.json({ success: true, mensaje });
   } catch (error) {
     console.error('[enviarMensajeLuchador ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al enviar mensaje'
-    });
+    res.status(500).json({ error: 'Error al enviar mensaje' });
   }
 };
 
@@ -152,30 +97,13 @@ exports.enviarMensajeLuchador = async (req, res) => {
  */
 exports.ticketsAgrupacion = async (req, res) => {
   try {
-    const agrupacion_id = req.user.id;
+    const tickets = store.getTicketsByAgrupacion(req.user.id)
+      .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
 
-    const response = await axios.get(
-      `${XANO_URL}/tickets`,
-      {
-        params: { agrupacion_id },
-        headers: { 'Authorization': `Bearer ${req.token}` }
-      }
-    );
-
-    const tickets = Array.isArray(response.data) ? response.data : [];
-
-    res.json({
-      total: tickets.length,
-      tickets: tickets.sort((a, b) =>
-        new Date(b.fecha_creacion) - new Date(a.fecha_creacion)
-      )
-    });
-
+    res.json({ total: tickets.length, tickets });
   } catch (error) {
     console.error('[ticketsAgrupacion ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al cargar solicitudes'
-    });
+    res.status(500).json({ error: 'Error al cargar solicitudes' });
   }
 };
 
@@ -189,32 +117,16 @@ exports.cambiarPrioridad = async (req, res) => {
     const { prioridad } = req.body;
 
     if (!PRIORIDADES.includes(prioridad)) {
-      return res.status(400).json({
-        error: 'Prioridad inválida'
-      });
+      return res.status(400).json({ error: 'Prioridad inválida' });
     }
 
-    const payload = {
-      prioridad,
-      fecha_actualizacion: new Date().toISOString()
-    };
+    const ticket = store.updateTicket(ticketId, { prioridad });
+    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
-    const response = await axios.patch(
-      `${XANO_URL}/tickets/${ticketId}`,
-      payload,
-      { headers: { Authorization: `Bearer ${req.token}` } }
-    );
-
-    res.json({
-      success: true,
-      ticket: response.data
-    });
-
+    res.json({ success: true, ticket });
   } catch (error) {
     console.error('[cambiarPrioridad ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al cambiar prioridad'
-    });
+    res.status(500).json({ error: 'Error al cambiar prioridad' });
   }
 };
 
@@ -231,38 +143,23 @@ exports.enviarMensajeAgrupacion = async (req, res) => {
       return res.status(400).json({ error: 'Mensaje vacío' });
     }
 
-    // POST mensaje
-    const msgPayload = {
+    store.crearMensaje({
       ticket_id: parseInt(ticketId),
       remitente: 'AGRUPACION',
       contenido: contenido.trim(),
-      fecha_envio: new Date().toISOString()
-    };
-
-    const authHeader = { headers: { Authorization: `Bearer ${req.token}` } };
-
-    await axios.post(`${XANO_URL}/ticket_mensajes`, msgPayload, authHeader);
+      fecha_envio: new Date().toISOString(),
+    });
 
     // Auto-cambiar estado a EN_PROCESO si está ABIERTO
-    try {
-      const ticketRes = await axios.get(`${XANO_URL}/tickets/${ticketId}`, authHeader);
-      if (ticketRes.data.estado === 'ABIERTO') {
-        await axios.patch(`${XANO_URL}/tickets/${ticketId}`, { estado: 'EN_PROCESO' }, authHeader);
-      }
-    } catch (e) {
-      // No crítico — el mensaje se envió igual
+    const ticket = store.getTicketById(ticketId);
+    if (ticket?.estado === 'ABIERTO') {
+      store.updateTicket(ticketId, { estado: 'EN_PROCESO' });
     }
 
-    res.json({
-      success: true,
-      message: 'Mensaje enviado'
-    });
-
+    res.json({ success: true, message: 'Mensaje enviado' });
   } catch (error) {
     console.error('[enviarMensajeAgrupacion ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al enviar mensaje'
-    });
+    res.status(500).json({ error: 'Error al enviar mensaje' });
   }
 };
 
@@ -273,28 +170,13 @@ exports.enviarMensajeAgrupacion = async (req, res) => {
 exports.finalizarTicket = async (req, res) => {
   try {
     const { ticketId } = req.params;
+    const ticket = store.updateTicket(ticketId, { estado: 'CERRADO' });
+    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
-    const payload = {
-      estado: 'CERRADO',
-      fecha_actualizacion: new Date().toISOString()
-    };
-
-    const response = await axios.patch(
-      `${XANO_URL}/tickets/${ticketId}`,
-      payload,
-      { headers: { Authorization: `Bearer ${req.token}` } }
-    );
-
-    res.json({
-      success: true,
-      ticket: response.data
-    });
-
+    res.json({ success: true, ticket });
   } catch (error) {
     console.error('[finalizarTicket ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al finalizar ticket'
-    });
+    res.status(500).json({ error: 'Error al finalizar ticket' });
   }
 };
 
@@ -304,30 +186,13 @@ exports.finalizarTicket = async (req, res) => {
  */
 exports.obtenerMensajes = async (req, res) => {
   try {
-    const { ticketId } = req.params;
+    const mensajes = store.getMensajesByTicket(req.params.ticketId)
+      .sort((a, b) => new Date(a.fecha_envio) - new Date(b.fecha_envio));
 
-    const response = await axios.get(
-      `${XANO_URL}/ticket_mensajes`,
-      {
-        params: { ticket_id: parseInt(ticketId) },
-        headers: { Authorization: `Bearer ${req.token}` }
-      }
-    );
-
-    const mensajes = Array.isArray(response.data) ? response.data : [];
-
-    res.json({
-      total: mensajes.length,
-      mensajes: mensajes.sort((a, b) =>
-        new Date(a.fecha_envio) - new Date(b.fecha_envio)
-      )
-    });
-
+    res.json({ total: mensajes.length, mensajes });
   } catch (error) {
     console.error('[obtenerMensajes ERROR]', error.message);
-    res.status(500).json({
-      error: 'Error al cargar mensajes'
-    });
+    res.status(500).json({ error: 'Error al cargar mensajes' });
   }
 };
 
