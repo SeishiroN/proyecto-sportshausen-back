@@ -1,4 +1,6 @@
-const store = require('../services/ticketStoreService');
+const axios = require('axios');
+
+const XANO_URL = process.env.XANO_SPORTSHAUSEN_URL;
 
 const TIPOS_TICKET = [
   'Consulta sobre evento',
@@ -8,6 +10,8 @@ const TIPOS_TICKET = [
 ];
 
 const PRIORIDADES = ['BAJA', 'MEDIANA', 'ALTA', 'URGENTE'];
+
+const auth = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
 
 /**
  * LUCHADOR: Crear ticket
@@ -28,7 +32,7 @@ exports.crearTicket = async (req, res) => {
       return res.status(400).json({ error: 'Agrupación no especificada' });
     }
 
-    const ticket = store.crearTicket({
+    const payload = {
       luchador_id,
       agrupacion_id,
       tipo_solicitud,
@@ -38,12 +42,13 @@ exports.crearTicket = async (req, res) => {
       evento_id: evento_id || null,
       fecha_creacion: new Date().toISOString(),
       fecha_actualizacion: new Date().toISOString(),
-    });
+    };
 
-    res.status(201).json({ success: true, ticket, message: 'Ticket creado exitosamente' });
+    const { data } = await axios.post(`${XANO_URL}/tickets`, payload, auth(req.token));
+    res.status(201).json({ success: true, ticket: data, message: 'Ticket creado exitosamente' });
 
   } catch (error) {
-    console.error('[crearTicket ERROR]', error.message);
+    console.error('[crearTicket ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al crear ticket' });
   }
 };
@@ -54,12 +59,19 @@ exports.crearTicket = async (req, res) => {
  */
 exports.misTickets = async (req, res) => {
   try {
-    const tickets = store.getTicketsByLuchador(req.user.id)
-      .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    const { data } = await axios.get(`${XANO_URL}/tickets`, {
+      params: { luchador_id: req.user.id },
+      ...auth(req.token),
+    });
 
-    res.json({ total: tickets.length, tickets });
+    const tickets = Array.isArray(data) ? data : [];
+    res.json({
+      total: tickets.length,
+      tickets: tickets.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)),
+    });
+
   } catch (error) {
-    console.error('[misTickets ERROR]', error.message);
+    console.error('[misTickets ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al cargar tickets' });
   }
 };
@@ -77,16 +89,17 @@ exports.enviarMensajeLuchador = async (req, res) => {
       return res.status(400).json({ error: 'Mensaje vacío' });
     }
 
-    const mensaje = store.crearMensaje({
+    const { data } = await axios.post(`${XANO_URL}/ticket_mensajes`, {
       ticket_id: parseInt(ticketId),
       remitente: 'LUCHADOR',
       contenido: contenido.trim(),
       fecha_envio: new Date().toISOString(),
-    });
+    }, auth(req.token));
 
-    res.json({ success: true, mensaje });
+    res.json({ success: true, mensaje: data });
+
   } catch (error) {
-    console.error('[enviarMensajeLuchador ERROR]', error.message);
+    console.error('[enviarMensajeLuchador ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al enviar mensaje' });
   }
 };
@@ -97,13 +110,22 @@ exports.enviarMensajeLuchador = async (req, res) => {
  */
 exports.ticketsAgrupacion = async (req, res) => {
   try {
-    const tickets = store.getTicketsByAgrupacion(req.user.id)
-      .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion));
+    const { data } = await axios.get(`${XANO_URL}/tickets`, {
+      params: { agrupacion_id: req.user.id },
+      ...auth(req.token),
+    });
 
-    res.json({ total: tickets.length, tickets });
+    const tickets = Array.isArray(data) ? data : [];
+    res.json({
+      total: tickets.length,
+      tickets: tickets.sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)),
+    });
+
   } catch (error) {
-    console.error('[ticketsAgrupacion ERROR]', error.message);
-    res.status(500).json({ error: 'Error al cargar solicitudes' });
+    console.error('[ticketsAgrupacion ERROR] status:', error.response?.status);
+    console.error('[ticketsAgrupacion ERROR] data:', JSON.stringify(error.response?.data));
+    console.error('[ticketsAgrupacion ERROR] msg:', error.message);
+    res.status(500).json({ error: error.response?.data?.message || error.message });
   }
 };
 
@@ -120,12 +142,15 @@ exports.cambiarPrioridad = async (req, res) => {
       return res.status(400).json({ error: 'Prioridad inválida' });
     }
 
-    const ticket = store.updateTicket(ticketId, { prioridad });
-    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
+    const { data } = await axios.patch(`${XANO_URL}/tickets/${ticketId}`, {
+      prioridad,
+      fecha_actualizacion: new Date().toISOString(),
+    }, auth(req.token));
 
-    res.json({ success: true, ticket });
+    res.json({ success: true, ticket: data });
+
   } catch (error) {
-    console.error('[cambiarPrioridad ERROR]', error.message);
+    console.error('[cambiarPrioridad ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al cambiar prioridad' });
   }
 };
@@ -143,22 +168,28 @@ exports.enviarMensajeAgrupacion = async (req, res) => {
       return res.status(400).json({ error: 'Mensaje vacío' });
     }
 
-    store.crearMensaje({
+    await axios.post(`${XANO_URL}/ticket_mensajes`, {
       ticket_id: parseInt(ticketId),
       remitente: 'AGRUPACION',
       contenido: contenido.trim(),
       fecha_envio: new Date().toISOString(),
-    });
+    }, auth(req.token));
 
     // Auto-cambiar estado a EN_PROCESO si está ABIERTO
-    const ticket = store.getTicketById(ticketId);
-    if (ticket?.estado === 'ABIERTO') {
-      store.updateTicket(ticketId, { estado: 'EN_PROCESO' });
-    }
+    try {
+      const { data: ticket } = await axios.get(`${XANO_URL}/tickets/${ticketId}`, auth(req.token));
+      if (ticket.estado === 'ABIERTO') {
+        await axios.patch(`${XANO_URL}/tickets/${ticketId}`, {
+          estado: 'EN_PROCESO',
+          fecha_actualizacion: new Date().toISOString(),
+        }, auth(req.token));
+      }
+    } catch (_) {}
 
     res.json({ success: true, message: 'Mensaje enviado' });
+
   } catch (error) {
-    console.error('[enviarMensajeAgrupacion ERROR]', error.message);
+    console.error('[enviarMensajeAgrupacion ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al enviar mensaje' });
   }
 };
@@ -170,12 +201,16 @@ exports.enviarMensajeAgrupacion = async (req, res) => {
 exports.finalizarTicket = async (req, res) => {
   try {
     const { ticketId } = req.params;
-    const ticket = store.updateTicket(ticketId, { estado: 'CERRADO' });
-    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
-    res.json({ success: true, ticket });
+    const { data } = await axios.patch(`${XANO_URL}/tickets/${ticketId}`, {
+      estado: 'CERRADO',
+      fecha_actualizacion: new Date().toISOString(),
+    }, auth(req.token));
+
+    res.json({ success: true, ticket: data });
+
   } catch (error) {
-    console.error('[finalizarTicket ERROR]', error.message);
+    console.error('[finalizarTicket ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al finalizar ticket' });
   }
 };
@@ -186,12 +221,19 @@ exports.finalizarTicket = async (req, res) => {
  */
 exports.obtenerMensajes = async (req, res) => {
   try {
-    const mensajes = store.getMensajesByTicket(req.params.ticketId)
-      .sort((a, b) => new Date(a.fecha_envio) - new Date(b.fecha_envio));
+    const { data } = await axios.get(`${XANO_URL}/ticket_mensajes`, {
+      params: { ticket_id: parseInt(req.params.ticketId) },
+      ...auth(req.token),
+    });
 
-    res.json({ total: mensajes.length, mensajes });
+    const mensajes = Array.isArray(data) ? data : [];
+    res.json({
+      total: mensajes.length,
+      mensajes: mensajes.sort((a, b) => new Date(a.fecha_envio) - new Date(b.fecha_envio)),
+    });
+
   } catch (error) {
-    console.error('[obtenerMensajes ERROR]', error.message);
+    console.error('[obtenerMensajes ERROR]', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al cargar mensajes' });
   }
 };

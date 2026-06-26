@@ -5,5 +5,12 @@
     "createdAt": "2026-06-26T01:23:28.869Z",
     "user_id": 15,
     "passwordHash": "$2b$10$WIbMi8Im0R2FnMfqgGgpMusrBQRB.qDG2kAbtCHlEt/SBSlRyT1NO"
+  },
+  "test2@test.com": {
+    "role": "luchador",
+    "email": "test2@test.com",
+    "createdAt": "2026-06-26T02:06:22.244Z",
+    "user_id": 16,
+    "passwordHash": "$2b$10$K6PZwSUNYBc/0yM8lzu2b.fV5EdFSG/jfgvex65aQQqou55Q4q9ce"
   }
 }
